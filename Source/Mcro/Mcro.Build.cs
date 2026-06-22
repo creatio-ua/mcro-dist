@@ -22,7 +22,7 @@ public class Mcro : ModuleRules
 		// C++23
 		bUseUnity = false;
 		CppStandard = CppStandardVersion.Latest;
-		
+		bValidateFormatStrings = false;
 		PublicDependencyModuleNames.AddRange(new[]
 		{
 			"Core",
