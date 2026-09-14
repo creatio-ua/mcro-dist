@@ -29,7 +29,7 @@ namespace Mcro::Error
 
 		auto error = inArgs._Error.ToSharedRef();
 		auto allExtensions = IErrorDisplayExtension::GetAll();
-		auto extensions = allExtensions
+		auto extensions = AsView(allExtensions)
 			| rv::filter([error](IErrorDisplayExtension* i) { return i->SupportsError(error); })
 			| RenderAs<TArray>()
 		;
@@ -40,7 +40,7 @@ namespace Mcro::Error
 			+ Row()[ SeverityWidget(error) ]
 			+ Row()[ inArgs._PostSeverity.Widget ]
 			+ TSlots(
-				extensions
+				AsView(extensions)
 					| rv::transform([error](IErrorDisplayExtension* i)
 					{
 						return i->PostSeverity(error);
@@ -56,7 +56,7 @@ namespace Mcro::Error
 			+ Row()[ OptionalTextWidget(inArgs._Error->GetMessage()) ]
 			+ Row()[ inArgs._PostMessage.Widget ]
 			+ TSlots(
-				extensions
+				AsView(extensions)
 					| rv::transform([error](IErrorDisplayExtension* i)
 					{
 						return i->PostMessage(error);
@@ -72,7 +72,7 @@ namespace Mcro::Error
 			+ Row()[ ExpandableTextWidget(INVTEXT_"Further details", inArgs._Error->GetDetails()) ]
 			+ Row()[ inArgs._PostDetails.Widget ]
 			+ TSlots(
-				extensions
+				AsView(extensions)
 					| rv::transform([error](IErrorDisplayExtension* i)
 					{
 						return i->PostDetails(error);
@@ -88,7 +88,7 @@ namespace Mcro::Error
 			+ Row()[ ExpandableTextWidget(INVTEXT_"Code context", inArgs._Error->GetCodeContext()) ]
 			+ Row()[ inArgs._PostCodeContext.Widget ]
 			+ TSlots(
-				extensions
+				AsView(extensions)
 					| rv::transform([error](IErrorDisplayExtension* i)
 					{
 						return i->PostCodeContext(error);
@@ -104,7 +104,7 @@ namespace Mcro::Error
 			+ Row()[ ExpandableTextWidget(INVTEXT_"Error Propagation", inArgs._Error->GetErrorPropagationJoined()) ]
 			+ Row()[ inArgs._PostErrorPropagation.Widget ]
 			+ TSlots(
-				extensions
+				AsView(extensions)
 					| rv::transform([error](IErrorDisplayExtension* i)
 					{
 						return i->PostErrorPropagation(error);
@@ -133,7 +133,7 @@ namespace Mcro::Error
 			})
 			+ Row()[ inArgs._PostInnerErrors.Widget ]
 			+ TSlots(
-				extensions
+				AsView(extensions)
 					| rv::transform([error](IErrorDisplayExtension* i)
 					{
 						return i->PostInnerErrors(error);

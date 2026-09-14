@@ -19,6 +19,8 @@
 #include "Subsystems/WorldSubsystem.h"
 #include "Engine/Engine.h"
 #include "Engine/GameInstance.h"
+#include "Engine/LocalPlayer.h"
+
 #include "Mcro/Concepts.h"
 #include "Mcro/AssertMacros.h"
 #include "Kismet/GameplayStatics.h"

@@ -22,6 +22,31 @@ namespace Mcro::Range
 {
 	using namespace Mcro::Concepts;
 
+	/** @brief Safely converts an Unreal Engine contiguous container to a standard C++ range view */
+	template <typename ContainerType>
+	auto AsView(ContainerType& Container)
+	{
+		return ranges::subrange(Container.GetData(), Container.GetData() + Container.Num());
+	}
+	
+	namespace Detail
+	{
+		template <typename T>
+		decltype(auto) AdaptIfNeeded(T&& container)
+		{
+			// If it's a contiguous Unreal container like TArray, convert it to a subrange
+			if constexpr (requires { container.GetData(); container.Num(); })
+			{
+				return ranges::subrange(container.GetData(), container.GetData() + container.Num());
+			}
+			else
+			{
+				// Otherwise, pass it through untouched
+				return FWD(container);
+			}
+		}
+	}
+
 	/** @brief Make an initializer list compatible with range API's */
 	template <typename T>
 	decltype(auto) Literal(std::initializer_list<T>&& input) { return FWD(input); }
@@ -32,7 +57,7 @@ namespace Mcro::Range
 	{
 		return ranges::make_pipeable([&](auto&& left)
 		{
-			return ranges::views::zip(left, FWD(right)...);
+			return ranges::views::zip(Detail::AdaptIfNeeded(left), Detail::AdaptIfNeeded(FWD(right))...);
 		});
 	}
 	
@@ -42,7 +67,7 @@ namespace Mcro::Range
 	{
 		return ranges::make_pipeable([&](auto&& left)
 		{
-			return ranges::views::concat(left, FWD(right)...);
+			return ranges::views::concat(Detail::AdaptIfNeeded(left), Detail::AdaptIfNeeded(FWD(right))...);
 		});
 	}
 
@@ -110,23 +135,27 @@ namespace Mcro::Range
 	 *	@param matchOnlyBeginning
 	 *	By default MatchOrdered returns false for ranges with different lengths
 	 */
-	template <CRangeMember Left, CRangeMember Right>
+template <CRangeMember Left, CRangeMember Right>
 	requires CCoreHalfEqualityComparable<TRangeElementType<Left>, TRangeElementType<Right>>
 	bool MatchOrdered(Left&& left, Right&& right, bool matchOnlyBeginning = false)
 	{
-		if (IsEmpty(left) && IsEmpty(right)) return true;
+		// Adapt both inputs
+		auto&& adLeft = Detail::AdaptIfNeeded(left);
+		auto&& adRight = Detail::AdaptIfNeeded(right);
+
+		if (IsEmpty(adLeft) && IsEmpty(adRight)) return true;
 		
 		if constexpr (CCountableRange<Left> && CCountableRange<Right>)
-			if (!matchOnlyBeginning && size(left) != size(right))
+			if (!matchOnlyBeginning && ranges::distance(adLeft) != ranges::distance(adRight))
 				return false;
 		
-		auto leftIt = left.begin();
-		auto rightIt = right.begin();
+		auto leftIt = adLeft.begin();
+		auto rightIt = adRight.begin();
 		for (;;)
 		{
-			if (IteratorEquals(leftIt, left.end()) || IteratorEquals(rightIt, right.end()))
+			if (IteratorEquals(leftIt, adLeft.end()) || IteratorEquals(rightIt, adRight.end()))
 				return matchOnlyBeginning || (
-					IteratorEquals(leftIt, left.end()) && IteratorEquals(rightIt, right.end())
+					IteratorEquals(leftIt, adLeft.end()) && IteratorEquals(rightIt, adRight.end())
 				);
 
 			if (*leftIt != *rightIt) return false;
@@ -169,20 +198,22 @@ namespace Mcro::Range
 	template <CFunctionLike Predicate>
 	auto AllOf(Predicate&& pred)
 	{
-		return ranges::make_pipeable([&](auto&& left){ return ranges::all_of(left, pred); });
+		return ranges::make_pipeable([&](auto&& left){ return ranges::all_of(Detail::AdaptIfNeeded(left), pred); });
 	}
 
 	template <CFunctionLike Predicate>
 	auto AnyOf(Predicate&& pred)
 	{
-		return ranges::make_pipeable([&](auto&& left){ return ranges::any_of(left, pred); });
+		return ranges::make_pipeable([&](auto&& left){ return ranges::any_of(Detail::AdaptIfNeeded(left), pred); });
 	}
-
 	FORCEINLINE auto FilterValid()
 	{
-		return ranges::views::filter([]<CValidable T>(T&& item)
+		return ranges::make_pipeable([](auto&& left)
 		{
-			return TestValid(FWD(item));
+			return ranges::views::filter(Detail::AdaptIfNeeded(left), []<CValidable T>(T&& item)
+			{
+				return TestValid(FWD(item));
+			});
 		});
 	}
 
@@ -251,7 +282,7 @@ namespace Mcro::Range
 	{
 		return ranges::make_pipeable([tr]<CRangeOfTuplesCompatibleWithFunction<Transform> Left>(Left&& left)
 		{
-			return TransformTuple(FWD(left), tr);
+			return TransformTuple(Detail::AdaptIfNeeded(FWD(left)), tr);
 		});
 	}
 
@@ -320,7 +351,7 @@ namespace Mcro::Range
 	{
 		return ranges::make_pipeable([predicate]<CRangeOfTuplesCompatibleWithFunction<Predicate> Left>(Left&& left)
 		{
-			return FilterTuple(FWD(left), predicate);
+			return FilterTuple(Detail::AdaptIfNeeded(FWD(left)), predicate);
 		});
 	}
 
@@ -339,7 +370,7 @@ namespace Mcro::Range
 	{
 		return ranges::make_pipeable([]<CRangeOfTuples Left>(Left&& left)
 		{
-			return SelectTupleItem<ItemIndex>(FWD(left));
+			return SelectTupleItem<ItemIndex>(Detail::AdaptIfNeeded(FWD(left)));
 		});
 	}
 
