@@ -103,7 +103,7 @@ namespace Mcro::Error
 		TSharedPtr<const SWidget> parent = args.Parent ? args.Parent : InferParentWidget();
 		
 		auto allExtensions = IErrorWindowExtension::GetAll();
-		auto extensions = allExtensions
+		auto extensions = AsView(allExtensions)
 			| rv::filter([error, &args](IErrorWindowExtension* i) { return i->SupportsError(error, args); })
 			| RenderAs<TArray>()
 		;
@@ -203,7 +203,7 @@ namespace Mcro::Error
 						)
 					]
 					+ TSlots(
-						extensions
+							AsView(extensions)
 							| rv::transform([error, &args](IErrorWindowExtension* i)
 							{
 								return i->PreErrorDisplay(error, args);
@@ -235,7 +235,7 @@ namespace Mcro::Error
 						]
 					]
 					+ TSlots(
-						extensions
+							AsView(extensions)
 							| rv::transform([error, &args](IErrorWindowExtension* i)
 							{
 								return i->PostErrorDisplay(error, args);

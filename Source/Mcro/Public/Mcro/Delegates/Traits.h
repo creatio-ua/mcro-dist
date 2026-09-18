@@ -59,7 +59,7 @@ namespace Mcro::Delegates
 	template <CDynamicDelegate Dynamic>
 	struct TDynamicMethodPtr_Struct<Dynamic>
 	{
-		using Type = typename Dynamic::template TMethodPtrResolver<FDeclareOnly>::FMethodPtr;
+		using Type = typename Dynamic::template TMethodPtrResolver<false, FDeclareOnly>::FMethodPtr;
 	};
 
 	template <CDynamicMulticastDelegate Dynamic>

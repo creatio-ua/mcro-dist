@@ -110,9 +110,12 @@ namespace Mcro::Composition
 		namespace rv = ranges::views;
 			
 		if (HasComponentAlias(typeHash))
-			return ComponentAliases[typeHash]
-				| rv::transform([this](FTypeHash i) -> decltype(auto) { return Components.Find(i); });
-			
+		{
+	        const auto& Array = ComponentAliases[typeHash];
+	        return AsView(Array)
+    	        | rv::transform([this](FTypeHash i) -> decltype(auto) { return Components.Find(i); });
+		}
+
 		return r::empty_view<FAny*>();
 	}
 
